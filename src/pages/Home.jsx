@@ -1,64 +1,139 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getStorage, setStorage } from '../utils/util.js'
+import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { MOCK_SCRIPTS } from '../data/scripts.js'
 import './Home.css'
 
 export default function Home() {
-  const navigate = useNavigate()
-  const [userInfo, setUserInfo] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filterTag, setFilterTag] = useState('all')
+  const [filterPlayers, setFilterPlayers] = useState(0)
 
-  useEffect(() => {
-    // 记录访问时间到 localStorage（对应 app.js onLaunch 中的 logs 逻辑）
-    const logs = getStorage('logs') || []
-    logs.unshift(Date.now())
-    setStorage('logs', logs)
-
-    // 读取本地缓存的用户信息
-    const cached = getStorage('userInfo')
-    if (cached) setUserInfo(cached)
+  // 收集所有标签
+  const allTags = useMemo(() => {
+    const tags = new Set()
+    MOCK_SCRIPTS.forEach((s) => s.tags.forEach((t) => tags.add(t)))
+    return ['all', ...Array.from(tags)]
   }, [])
 
-  const handleGetUserInfo = () => {
-    // Web 环境下模拟获取用户信息
-    const mockUser = {
-      nickName: '侦探 Holmes',
-      avatarUrl: 'data:image/svg+xml,' + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">' +
-        '<circle cx="64" cy="64" r="62" fill="#4a90d9"/>' +
-        '<text x="64" y="74" font-size="48" text-anchor="middle" fill="white">H</text>' +
-        '</svg>'
-      )
-    }
-    setStorage('userInfo', mockUser)
-    setUserInfo(mockUser)
-  }
+  // 玩家人数选项
+  const playerOptions = useMemo(() => {
+    const counts = new Set(MOCK_SCRIPTS.map((s) => s.playerCount))
+    return [0, ...Array.from(counts).sort((a, b) => a - b)]
+  }, [])
 
-  const handleNavigateToLogs = () => {
-    navigate('/logs')
-  }
+  const filteredScripts = useMemo(() => {
+    return MOCK_SCRIPTS.filter((s) => {
+      const matchSearch =
+        !search ||
+        s.title.includes(search) ||
+        s.synopsis.includes(search) ||
+        s.tags.some((t) => t.includes(search))
+      const matchTag = filterTag === 'all' || s.tags.includes(filterTag)
+      const matchPlayers = filterPlayers === 0 || s.playerCount === filterPlayers
+      return matchSearch && matchTag && matchPlayers
+    })
+  }, [search, filterTag, filterPlayers])
 
   return (
-    <div className="container">
-      <div className="userinfo">
-        {!userInfo ? (
-          <button className="btn-get-user" onClick={handleGetUserInfo}>
-            获取头像昵称
-          </button>
-        ) : (
-          <>
-            <img
-              className="userinfo-avatar"
-              src={userInfo.avatarUrl}
-              alt="avatar"
-              onClick={handleNavigateToLogs}
-            />
-            <span className="userinfo-nickname">{userInfo.nickName}</span>
-          </>
-        )}
+    <div className="home">
+      {/* Banner */}
+      <div className="home-banner">
+        <h1 className="home-banner-title">谋杀之谜</h1>
+        <p className="home-banner-subtitle">沉浸式剧本杀 · 多人在线 · 角色扮演推理</p>
       </div>
-      <div className="usermotto">
-        <span className="user-motto">开始游戏</span>
+
+      {/* 筛选区 */}
+      <div className="home-filters">
+        <div className="home-search">
+          <input
+            type="text"
+            placeholder="搜索剧本名 / 标签 / 简介..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="home-search-input"
+          />
+        </div>
+        <div className="home-filter-row">
+          <div className="home-filter-group">
+            <span className="home-filter-label">标签</span>
+            <div className="home-filter-chips">
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  className={`home-chip ${filterTag === tag ? 'active' : ''}`}
+                  onClick={() => setFilterTag(tag)}
+                >
+                  {tag === 'all' ? '全部' : tag}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="home-filter-group">
+            <span className="home-filter-label">人数</span>
+            <div className="home-filter-chips">
+              {playerOptions.map((n) => (
+                <button
+                  key={n}
+                  className={`home-chip ${filterPlayers === n ? 'active' : ''}`}
+                  onClick={() => setFilterPlayers(n)}
+                >
+                  {n === 0 ? '全部' : `${n}人`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* 剧本列表 */}
+      <div className="home-section-title">
+        共 {filteredScripts.length} 个剧本
+      </div>
+      {filteredScripts.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <p>没有找到符合条件的剧本</p>
+        </div>
+      ) : (
+        <div className="script-grid">
+          {filteredScripts.map((script) => (
+            <Link
+              to={`/script/${script.id}`}
+              key={script.id}
+              className="script-card"
+            >
+              <div className="script-card-cover">
+                <img src={script.cover} alt={script.title} />
+                <div className="script-card-badge">
+                  {script.playerCount} 人
+                </div>
+              </div>
+              <div className="script-card-body">
+                <h3 className="script-card-title">{script.title}</h3>
+                <div className="script-card-meta">
+                  <span className="difficulty">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span
+                        key={n}
+                        className={`difficulty-star ${n > script.difficulty ? 'dim' : ''}`}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </span>
+                  <span className="script-card-duration">约 {script.duration} 分钟</span>
+                </div>
+                <p className="script-card-synopsis">{script.synopsis}</p>
+                <div className="script-card-tags">
+                  {script.tags.map((tag) => (
+                    <span key={tag} className="tag">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

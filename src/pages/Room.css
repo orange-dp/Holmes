@@ -1,0 +1,230 @@
+.room-page {
+  padding-bottom: 40px;
+}
+
+.room-back {
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+.room-back:hover {
+  color: var(--color-primary);
+}
+
+/* 房间头部 */
+.room-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.room-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.room-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-code {
+  font-size: 14px;
+  color: var(--color-text-dim);
+  letter-spacing: 1px;
+}
+
+/* 区块标题 */
+.room-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* 玩家列表 */
+.room-players {
+  margin-bottom: 32px;
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  transition: border-color var(--transition);
+}
+
+.player-item.ready {
+  border-color: var(--color-success);
+}
+
+.player-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.player-item-name {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-item-role {
+  font-size: 13px;
+  color: var(--color-text-dim);
+}
+
+.player-item-role strong {
+  color: var(--color-accent);
+}
+
+/* 加入区域 */
+.room-join {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.room-join-input {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.room-join-input:focus {
+  border-color: var(--color-primary);
+}
+
+.room-join-input::placeholder {
+  color: var(--color-text-dim);
+}
+
+/* 角色预览 */
+.room-roles-preview {
+  margin-bottom: 32px;
+}
+
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.role-card {
+  display: flex;
+  gap: 12px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.role-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.role-card-body {
+  flex: 1;
+}
+
+.role-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.role-desc {
+  font-size: 12px;
+  color: var(--color-text-dim);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.player-role-tag {
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+/* 游戏阶段预览 */
+.room-phases-preview {
+  margin-bottom: 20px;
+}
+
+.room-phase-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-phase-chip {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 20px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+}
+
+/* Not Found */
+.room-not-found {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.room-not-found p {
+  font-size: 18px;
+  color: var(--color-text-dim);
+  margin-bottom: 20px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .room-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  .room-header-right {
+    width: 100%;
+  }
+
+  .room-header-right .btn {
+    width: 100%;
+  }
+}

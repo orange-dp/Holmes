@@ -1,0 +1,268 @@
+/* 顶部信息 */
+.detail-page {
+  padding-bottom: 40px;
+}
+
+.detail-header {
+  margin-bottom: 32px;
+}
+
+.detail-back {
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+.detail-back:hover {
+  color: var(--color-primary);
+}
+
+.detail-header-content {
+  display: flex;
+  gap: 32px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  border: 1px solid var(--color-border);
+}
+
+.detail-cover {
+  width: 200px;
+  aspect-ratio: 400 / 560;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.detail-header-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.detail-duration {
+  font-size: 14px;
+  color: var(--color-text-dim);
+}
+
+.detail-synopsis {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-text-dim);
+  margin-bottom: 16px;
+}
+
+.detail-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.detail-start-btn {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* Tab 区域 */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+
+.detail-tab {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.detail-tab:hover {
+  color: var(--color-text);
+}
+
+.detail-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* 角色卡片 */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.role-card {
+  display: flex;
+  gap: 14px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  transition: border-color var(--transition);
+}
+
+.role-card:hover {
+  border-color: var(--color-accent);
+}
+
+.role-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.role-card-body {
+  flex: 1;
+}
+
+.role-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.role-desc {
+  font-size: 13px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* 阶段列表 */
+.phase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.phase-item {
+  display: flex;
+  gap: 16px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.phase-index {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.phase-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.phase-item-desc {
+  font-size: 13px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* 线索卡片 */
+.clue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.clue-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.clue-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.clue-card-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.clue-card-desc {
+  font-size: 13px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.clue-card-owner {
+  font-size: 12px;
+  color: var(--color-text-dim);
+}
+
+/* Not Found */
+.detail-not-found {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.detail-not-found p {
+  font-size: 18px;
+  color: var(--color-text-dim);
+  margin-bottom: 20px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .detail-header-content {
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .detail-cover {
+    width: 140px;
+    align-self: center;
+  }
+
+  .detail-title {
+    font-size: 22px;
+  }
+}

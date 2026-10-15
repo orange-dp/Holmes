@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { getScriptDetail, getMyRole } from '../api/scripts.js';
+import { getScriptDetail, getMyRole, getRevealRoles } from '../api/scripts.js';
 import { getRoom, getRoomByCode, changePhase, endGame } from '../api/rooms.js';
 import {
   connectSocket,
@@ -12,6 +12,8 @@ import {
   onVoteUpdate,
   onVoteResult,
   onGameEnded,
+  onPlayerDisconnected,
+  onClueRevealed,
   emitVote,
   emitPhaseChange,
   emitGameEnd,
@@ -36,6 +38,9 @@ export default function Play() {
   const [voteInfo, setVoteInfo] = useState({ voted: 0, total: 0 });
   const [voteResult, setVoteResult] = useState(null);
   const [revealed, setRevealed] = useState(false);
+  const [revealRoles, setRevealRoles] = useState(null);
+  const [disconnectNotice, setDisconnectNotice] = useState('');
+  const [clueRevealNotice, setClueRevealNotice] = useState('');
 
   const roomIdRef = useRef(null);
 
@@ -97,12 +102,28 @@ export default function Play() {
       // 游戏结束
     });
 
+    const cleanup6 = onPlayerDisconnected((data) => {
+      const player = room?.players?.find((p) => p.userId === data.userId);
+      const name = player?.nickname || player?.username || '某玩家';
+      setDisconnectNotice(`${name} 已断线`);
+      setTimeout(() => setDisconnectNotice(''), 5000);
+    });
+
+    const cleanup7 = onClueRevealed((data) => {
+      if (data.by) {
+        setClueRevealNotice(`${data.by} 翻看了一条线索`);
+        setTimeout(() => setClueRevealNotice(''), 3000);
+      }
+    });
+
     return () => {
       cleanup1();
       cleanup2();
       cleanup3();
       cleanup4();
       cleanup5();
+      cleanup6();
+      cleanup7();
     };
   }, [room?.id]);
 
@@ -201,6 +222,10 @@ export default function Play() {
   // 揭晓真相
   const handleReveal = () => {
     setRevealed(true);
+    // 获取所有角色的凶手身份
+    getRevealRoles(id)
+      .then((data) => setRevealRoles(data.roles))
+      .catch(() => {});
   };
 
   // 结束游戏
@@ -239,6 +264,13 @@ export default function Play() {
           </div>
         )}
       </div>
+
+      {/* 断线/线索通知 */}
+      {(disconnectNotice || clueRevealNotice) && (
+        <div className="play-notice">
+          {disconnectNotice || clueRevealNotice}
+        </div>
+      )}
 
       {/* 阶段进度条 */}
       <div className="play-progress">
@@ -428,25 +460,30 @@ export default function Play() {
               ) : (
                 <div className="play-reveal-content">
                   <h3 className="play-reveal-title">真相大白</h3>
-                  {script.roles.map((role) => (
-                    <div
-                      key={role.id}
-                      className={`play-reveal-role ${role.id === myRole.id ? 'me' : ''}`}
-                    >
-                      <img className="role-avatar" src={role.avatar} alt={role.name} />
-                      <div className="play-reveal-role-info">
-                        <span className="play-reveal-role-name">{role.name}</span>
-                        {role.id === myRole.id && <span className="tag tag-primary">我</span>}
+                  {script.roles.map((role) => {
+                    const revealInfo = revealRoles?.find((r) => r.id === role.id);
+                    const isKiller = revealInfo?.isKiller;
+                    return (
+                      <div
+                        key={role.id}
+                        className={`play-reveal-role ${role.id === myRole.id ? 'me' : ''} ${isKiller ? 'is-killer' : ''}`}
+                      >
+                        <img className="role-avatar" src={role.avatar} alt={role.name} />
+                        <div className="play-reveal-role-info">
+                          <span className="play-reveal-role-name">{role.name}</span>
+                          {role.id === myRole.id && <span className="tag tag-primary">我</span>}
+                          {isKiller && <span className="tag tag-danger">凶手</span>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {myRole.isKiller && (
                     <p className="play-reveal-text">你就是凶手！</p>
                   )}
                   {!myRole.isKiller && voteTarget && (
                     <p className="play-reveal-text">
                       你投给了 <strong>{script.roles.find((r) => r.id === voteTarget)?.name}</strong>
-                      {script.roles.find((r) => r.id === voteTarget)?.isKiller
+                      {revealRoles?.find((r) => r.id === voteTarget)?.isKiller
                         ? '，恭喜猜对了！'
                         : '，很遗憾猜错了。'}
                     </p>

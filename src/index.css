@@ -285,3 +285,34 @@ input, textarea, select {
     font-size: 14px;
   }
 }
+
+/* ErrorBoundary */
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.error-boundary-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-boundary-title {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.error-boundary-desc {
+  color: var(--color-text-dim);
+  margin-bottom: 24px;
+  max-width: 400px;
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: 12px;
+}

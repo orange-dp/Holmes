@@ -2,14 +2,14 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: holmes
-      POSTGRES_PASSWORD: holmes123
-      POSTGRES_DB: holmes
+      POSTGRES_USER: ${DB_USER:-holmes}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-holmes}
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U holmes"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-holmes}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -19,12 +19,12 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: "5432"
-      DB_USER: holmes
-      DB_PASSWORD: holmes123
-      DB_NAME: holmes
+      DB_USER: ${DB_USER:-holmes}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_NAME: ${DB_NAME:-holmes}
       PORT: "3001"
       CORS_ORIGIN: "*"
-      JWT_SECRET: holmes-prod-secret-change-me
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
     depends_on:
       db:
         condition: service_healthy

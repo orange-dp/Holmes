@@ -2,6 +2,17 @@
   padding-bottom: 40px;
 }
 
+.play-notice {
+  background: rgba(243, 156, 18, 0.12);
+  border: 1px solid rgba(243, 156, 18, 0.4);
+  color: #f39c12;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  margin: 8px 0;
+  font-size: 14px;
+  text-align: center;
+}
+
 .play-back {
   background: none;
   border: none;
@@ -432,7 +443,8 @@
   margin-bottom: 8px;
 }
 
-.play-reveal-role.killer {
+.play-reveal-role.killer,
+.play-reveal-role.is-killer {
   border-color: var(--color-danger);
   background: rgba(231, 76, 60, 0.08);
 }

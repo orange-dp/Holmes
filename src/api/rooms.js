@@ -84,3 +84,10 @@ export function endGame(roomId) {
 export function leaveRoom(roomId) {
   return post(`/rooms/${roomId}/leave`)
 }
+
+/**
+ * 获取我的游戏历史
+ */
+export function getMyHistory() {
+  return get('/rooms/history/mine')
+}

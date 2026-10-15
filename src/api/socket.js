@@ -6,6 +6,7 @@ import { io } from 'socket.io-client'
 import { getToken } from './client.js'
 
 let socket = null
+let lastRoomId = null
 
 /**
  * 初始化 Socket.IO 连接
@@ -19,14 +20,22 @@ export function connectSocket() {
       token: getToken(),
     },
     transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
   })
 
   socket.on('connect', () => {
     console.log('[Socket] 已连接')
+    // 重连后自动重新加入之前的房间
+    if (lastRoomId) {
+      socket.emit('room:join', { roomId: lastRoomId })
+    }
   })
 
-  socket.on('disconnect', () => {
-    console.log('[Socket] 已断开')
+  socket.on('disconnect', (reason) => {
+    console.log('[Socket] 已断开:', reason)
   })
 
   socket.on('connect_error', (err) => {
@@ -52,6 +61,7 @@ export function getSocket() {
  */
 export function joinRoomSocket(roomId) {
   const s = getSocket()
+  lastRoomId = roomId
   s.emit('room:join', { roomId })
 }
 
@@ -61,17 +71,8 @@ export function joinRoomSocket(roomId) {
  */
 export function leaveRoomSocket(roomId) {
   const s = getSocket()
+  lastRoomId = null
   s.emit('room:leave', { roomId })
-}
-
-/**
- * 发送准备状态
- * @param {string} roomId - 房间 ID
- * @param {boolean} ready - 是否准备
- */
-export function emitReady(roomId, ready) {
-  const s = getSocket()
-  s.emit('player:ready', { roomId, ready })
 }
 
 /**
@@ -188,10 +189,29 @@ export function onGameEnded(callback) {
 }
 
 /**
+ * 监听玩家断线
+ */
+export function onPlayerDisconnected(callback) {
+  const s = getSocket()
+  s.on('player:disconnected', callback)
+  return () => s.off('player:disconnected', callback)
+}
+
+/**
+ * 监听其他玩家翻看线索
+ */
+export function onClueRevealed(callback) {
+  const s = getSocket()
+  s.on('game:clueRevealed', callback)
+  return () => s.off('game:clueRevealed', callback)
+}
+
+/**
  * 断开 Socket 连接
  */
 export function disconnectSocket() {
   if (socket) {
+    lastRoomId = null
     socket.disconnect()
     socket = null
   }

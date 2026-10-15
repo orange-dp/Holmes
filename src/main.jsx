@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Layout from './components/Layout.jsx'
 import Home from './pages/Home.jsx'
 import ScriptDetail from './pages/ScriptDetail.jsx'
@@ -33,7 +34,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HashRouter>
       <AuthProvider>
-        <Layout>
+        <ErrorBoundary>
+          <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/script/:id" element={<ScriptDetail />} />
@@ -42,7 +44,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/play/:id" element={<ProtectedRoute><Play /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           </Routes>
-        </Layout>
+          </Layout>
+        </ErrorBoundary>
       </AuthProvider>
     </HashRouter>
   </React.StrictMode>

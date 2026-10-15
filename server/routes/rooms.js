@@ -306,21 +306,10 @@ router.post('/:id/phase', authRequired, async (req, res) => {
     newPhase = Math.max(room.current_phase - 1, 0)
   }
 
-  // 如果到达最后一个阶段，标记游戏结束
-  const isLastPhase = newPhase === phases.length - 1
-
-  if (isLastPhase && action === 'next') {
-    // 在最后一个阶段再推一次就结束
-    await query(
-      `UPDATE rooms SET current_phase = $1, updated_at = NOW() WHERE id = $2`,
-      [newPhase, roomId]
-    )
-  } else {
-    await query(
-      `UPDATE rooms SET current_phase = $1, updated_at = NOW() WHERE id = $2`,
-      [newPhase, roomId]
-    )
-  }
+  await query(
+    `UPDATE rooms SET current_phase = $1, updated_at = NOW() WHERE id = $2`,
+    [newPhase, roomId]
+  )
 
   const roomState = await buildRoomState(roomId)
   res.json({ room: roomState })
@@ -382,6 +371,53 @@ router.post('/:id/leave', authRequired, async (req, res) => {
 
   const roomState = await buildRoomState(roomId)
   res.json({ room: roomState })
+})
+
+// 获取用户的游戏历史
+router.get('/history/mine', authRequired, async (req, res) => {
+  const userId = req.user.id
+
+  const sessions = await queryAll(
+    `SELECT gs.id, gs.started_at, gs.ended_at, gs.winner, gs.final_phase,
+            r.code, r.status, s.title as script_title, s.cover as script_cover,
+            rp.role_id, s.roles
+     FROM game_sessions gs
+     JOIN rooms r ON gs.room_id = r.id
+     JOIN scripts s ON gs.script_id = s.id
+     JOIN room_players rp ON rp.room_id = r.id AND rp.user_id = $1
+     WHERE gs.ended_at IS NOT NULL
+     ORDER BY gs.ended_at DESC
+     LIMIT 20`,
+    [userId]
+  )
+
+  const history = sessions.map((s) => {
+    const role = (s.roles || []).find((r) => r.id === s.role_id)
+    const isKiller = role?.isKiller
+    // 判断胜负：凶手方 winner='killers'，平民方 winner='civilians'
+    let won = null
+    if (s.winner) {
+      won = (isKiller && s.winner === 'killers') || (!isKiller && s.winner === 'civilians')
+    }
+    return {
+      id: s.id,
+      scriptTitle: s.script_title,
+      scriptCover: s.script_cover,
+      roleName: role?.name || '未知',
+      isKiller,
+      won,
+      winner: s.winner,
+      startedAt: s.started_at,
+      endedAt: s.ended_at,
+    }
+  })
+
+  // 统计
+  const total = history.length
+  const wins = history.filter((h) => h.won === true).length
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0
+
+  res.json({ history, stats: { total, wins, winRate } })
 })
 
 export { buildRoomState }

@@ -26,3 +26,11 @@ export function getScriptDetail(id) {
 export function getMyRole(scriptId) {
   return get(`/scripts/${scriptId}/my-role`)
 }
+
+/**
+ * 获取揭晓阶段的完整角色信息（含 isKiller，需登录）
+ * @param {string} scriptId - 剧本 ID
+ */
+export function getRevealRoles(scriptId) {
+  return get(`/scripts/${scriptId}/reveal`)
+}

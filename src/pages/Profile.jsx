@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getScripts } from '../api/scripts.js';
+import { getMyHistory } from '../api/rooms.js';
 import './Profile.css';
 
 export default function Profile() {
@@ -13,6 +14,8 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [recommendScripts, setRecommendScripts] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState({ total: 0, wins: 0, winRate: 0 });
 
   // 初始化昵称
   useEffect(() => {
@@ -26,6 +29,16 @@ export default function Profile() {
     getScripts()
       .then((data) => {
         setRecommendScripts((data.scripts || []).slice(0, 3));
+      })
+      .catch(() => {});
+  }, []);
+
+  // 获取游戏历史
+  useEffect(() => {
+    getMyHistory()
+      .then((data) => {
+        setHistory(data.history || []);
+        setStats(data.stats || { total: 0, wins: 0, winRate: 0 });
       })
       .catch(() => {});
   }, []);
@@ -76,15 +89,15 @@ export default function Profile() {
       {/* 统计 */}
       <div className="profile-stats">
         <div className="profile-stat-item">
-          <span className="profile-stat-value">0</span>
+          <span className="profile-stat-value">{stats.total}</span>
           <span className="profile-stat-label">总场次</span>
         </div>
         <div className="profile-stat-item">
-          <span className="profile-stat-value">0</span>
+          <span className="profile-stat-value">{stats.wins}</span>
           <span className="profile-stat-label">胜利</span>
         </div>
         <div className="profile-stat-item">
-          <span className="profile-stat-value">-</span>
+          <span className="profile-stat-value">{stats.total > 0 ? `${stats.winRate}%` : '-'}</span>
           <span className="profile-stat-label">胜率</span>
         </div>
       </div>
@@ -92,12 +105,37 @@ export default function Profile() {
       {/* 游戏历史 */}
       <div className="profile-section">
         <h2 className="profile-section-title">游戏历史</h2>
-        <div className="profile-empty">
-          <p>还没有游戏记录</p>
-          <button className="btn btn-primary" onClick={() => navigate('/')}>
-            去玩一局
-          </button>
-        </div>
+        {history.length === 0 ? (
+          <div className="profile-empty">
+            <p>还没有游戏记录</p>
+            <button className="btn btn-primary" onClick={() => navigate('/')}>
+              去玩一局
+            </button>
+          </div>
+        ) : (
+          <div className="profile-history">
+            {history.map((h) => (
+              <div key={h.id} className="profile-history-item">
+                <img className="profile-history-cover" src={h.scriptCover} alt={h.scriptTitle} />
+                <div className="profile-history-info">
+                  <span className="profile-history-title">{h.scriptTitle}</span>
+                  <span className="profile-history-role">
+                    角色：{h.roleName}
+                    {h.isKiller && <span className="tag tag-danger" style={{ marginLeft: 6 }}>凶手</span>}
+                  </span>
+                  <span className="profile-history-time">
+                    {new Date(h.endedAt).toLocaleDateString('zh-CN')}
+                  </span>
+                </div>
+                <div className="profile-history-result">
+                  {h.won === true && <span className="tag tag-success">胜利</span>}
+                  {h.won === false && <span className="tag tag-primary">失败</span>}
+                  {h.won === null && <span className="tag tag-ghost">已结束</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 推荐剧本 */}

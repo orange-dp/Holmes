@@ -130,4 +130,49 @@ router.get('/:id/my-role', authRequired, async (req, res) => {
   })
 })
 
+// 获取揭晓阶段的完整角色信息（含 isKiller，需登录）
+// 仅在游戏处于 playing/finished 状态且到达 reveal 阶段时可用
+router.get('/:id/reveal', authRequired, async (req, res) => {
+  const { id: scriptId } = req.params
+  const userId = req.user.id
+
+  // 查找该用户在当前剧本的房间
+  const player = await queryOne(
+    `SELECT rp.role_id, r.id as room_id, r.status, r.current_phase
+     FROM room_players rp
+     JOIN rooms r ON rp.room_id = r.id
+     WHERE rp.user_id = $1 AND r.script_id = $2 AND r.status IN ('playing', 'finished')
+     ORDER BY r.updated_at DESC
+     LIMIT 1`,
+    [userId, scriptId]
+  )
+
+  if (!player) {
+    return res.status(403).json({ error: '你不在进行中的游戏中' })
+  }
+
+  const script = await queryOne('SELECT roles, phases FROM scripts WHERE id = $1', [scriptId])
+  if (!script) {
+    return res.status(404).json({ error: '剧本不存在' })
+  }
+
+  const phases = script.phases || []
+  const currentPhase = phases[player.current_phase]
+  const isRevealPhase = currentPhase?.type === 'reveal' || player.status === 'finished'
+
+  if (!isRevealPhase) {
+    return res.status(403).json({ error: '尚未到达揭晓阶段' })
+  }
+
+  // 返回所有角色的 isKiller 信息（不含 secret，保护其他玩家隐私）
+  const revealRoles = (script.roles || []).map(r => ({
+    id: r.id,
+    name: r.name,
+    avatar: r.avatar,
+    isKiller: !!r.isKiller,
+  }))
+
+  res.json({ roles: revealRoles })
+})
+
 export default router

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   createRoom,
-  getRoom,
   getRoomByCode,
   joinRoom,
   toggleReady,
@@ -19,6 +18,7 @@ import {
   onRoomState,
   onRolesAssigned,
   onGameStarted,
+  onPlayerDisconnected,
 } from '../api/socket.js';
 import './Room.css';
 
@@ -34,6 +34,7 @@ export default function Room() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  const [disconnectNotice, setDisconnectNotice] = useState('');
   const roomIdRef = useRef(null);
 
   // 初始加载：获取剧本详情
@@ -120,10 +121,18 @@ export default function Room() {
       navigate(`/play/${id}`);
     });
 
+    const cleanup4 = onPlayerDisconnected((data) => {
+      const player = room?.players?.find((p) => p.userId === data.userId);
+      const name = player?.nickname || player?.username || '某玩家';
+      setDisconnectNotice(`${name} 已断线`);
+      setTimeout(() => setDisconnectNotice(''), 5000);
+    });
+
     return () => {
       cleanup1();
       cleanup2();
       cleanup3();
+      cleanup4();
     };
   }, [id, room?.id]);
 
@@ -255,6 +264,7 @@ export default function Room() {
             </button>
           </div>
           {error && <p className="room-error">{error}</p>}
+      {disconnectNotice && <p className="room-notice">{disconnectNotice}</p>}
         </div>
       </div>
     );
@@ -316,6 +326,7 @@ export default function Room() {
       </div>
 
       {error && <p className="room-error">{error}</p>}
+      {disconnectNotice && <p className="room-notice">{disconnectNotice}</p>}
 
       {/* 玩家列表 */}
       <div className="room-players">

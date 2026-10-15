@@ -1,10 +1,11 @@
 #!/bin/sh
 # 等待数据库就绪
 echo "[Start] 等待数据库就绪..."
-until node -e "
-  const { Client } = require('pg');
+until node --input-type=module -e "
+  const { Client } = await import('pg');
   const c = new Client({ host: process.env.DB_HOST, port: process.env.DB_PORT, user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
-  c.connect().then(() => c.end()).catch(() => process.exit(1));
+  await c.connect();
+  await c.end();
 " 2>/dev/null; do
   echo "[Start] 数据库未就绪，2 秒后重试..."
   sleep 2

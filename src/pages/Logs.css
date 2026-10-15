@@ -1,0 +1,16 @@
+.log-list {
+  padding: 40px;
+}
+
+.log-item {
+  margin: 10px 0;
+  font-size: 15px;
+  color: #555;
+}
+
+.back-link {
+  margin-bottom: 20px;
+  color: #4a90d9;
+  text-decoration: none;
+  font-size: 14px;
+}

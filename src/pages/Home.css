@@ -1,0 +1,41 @@
+.userinfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.btn-get-user {
+  padding: 12px 32px;
+  font-size: 16px;
+  background: #4a90d9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-get-user:active {
+  opacity: 0.8;
+}
+
+.userinfo-avatar {
+  width: 128px;
+  height: 128px;
+  margin: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.userinfo-nickname {
+  color: #aaa;
+  font-size: 16px;
+}
+
+.usermotto {
+  margin-top: 200px;
+}
+
+.user-motto {
+  font-size: 18px;
+  color: #333;
+}

@@ -20,7 +20,7 @@ app.use(cors({ origin: CORS_ORIGIN, credentials: true }))
 app.use(express.json())
 
 // 健康检查
-app.get('/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ status: 'ok', service: 'holmes-api', time: new Date().toISOString() })
 })
 

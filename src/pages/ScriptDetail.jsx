@@ -1,24 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getScriptById } from '../data/scripts';
+import { getScriptDetail } from '../api/scripts.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import './ScriptDetail.css';
 
 export default function ScriptDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const script = getScriptById(id);
-  const [activeTab, setActiveTab] = useState('roles'); // roles | clues | phases
+  const { isAuthed } = useAuth();
+  const [script, setScript] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('roles');
 
-  if (!script) {
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+    getScriptDetail(id)
+      .then((data) => {
+        setScript(data.script);
+      })
+      .catch((err) => {
+        setError(err.message || '获取剧本详情失败');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return <div className="page-loading">加载中...</div>;
+  }
+
+  if (error || !script) {
     return (
       <div className="detail-not-found">
-        <p>剧本不存在</p>
+        <p>{error || '剧本不存在'}</p>
         <button className="btn btn-primary" onClick={() => navigate('/')}>
           返回大厅
         </button>
       </div>
     );
   }
+
+  const handleStartGame = () => {
+    if (!isAuthed) {
+      navigate('/login', { state: { from: `/script/${id}` } });
+      return;
+    }
+    navigate(`/room/${id}`);
+  };
 
   return (
     <div className="detail-page">
@@ -33,20 +64,24 @@ export default function ScriptDetail() {
             <h1 className="detail-title">{script.title}</h1>
             <div className="detail-meta">
               <span className="tag tag-primary">{script.playerCount}人本</span>
-              <span className="tag">{script.difficulty}</span>
+              <span className="difficulty">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <span key={n} className={`difficulty-star ${n > script.difficulty ? 'dim' : ''}`}>★</span>
+                ))}
+              </span>
               <span className="detail-duration">预计 {script.duration} 分钟</span>
             </div>
             <p className="detail-synopsis">{script.synopsis}</p>
             <div className="detail-tags">
-              {script.tags.map((t) => (
+              {(script.tags || []).map((t) => (
                 <span key={t} className="tag tag-ghost">{t}</span>
               ))}
             </div>
             <button
               className="btn btn-primary btn-lg detail-start-btn"
-              onClick={() => navigate(`/room/${script.id}`)}
+              onClick={handleStartGame}
             >
-              创建房间 / 开始游戏
+              {isAuthed ? '创建房间 / 开始游戏' : '登录后开始游戏'}
             </button>
           </div>
         </div>
@@ -78,15 +113,15 @@ export default function ScriptDetail() {
       <div className="detail-tab-content">
         {activeTab === 'roles' && (
           <div className="role-grid">
-            {script.roles.map((role) => (
+            {(script.roles || []).map((role) => (
               <div key={role.id} className="role-card">
                 <img className="role-avatar" src={role.avatar} alt={role.name} />
                 <div className="role-card-body">
                   <h3 className="role-name">{role.name}</h3>
-                  <p className="role-desc">{role.description}</p>
-                  {role.isKiller && (
-                    <span className="tag tag-danger">凶手</span>
+                  {role.occupation && (
+                    <span className="tag tag-ghost">{role.occupation}</span>
                   )}
+                  <p className="role-desc">{role.intro}</p>
                 </div>
               </div>
             ))}
@@ -95,11 +130,11 @@ export default function ScriptDetail() {
 
         {activeTab === 'phases' && (
           <div className="phase-list">
-            {script.phases.map((phase, idx) => (
+            {(script.phases || []).map((phase, idx) => (
               <div key={idx} className="phase-item">
                 <div className="phase-index">{idx + 1}</div>
                 <div className="phase-item-body">
-                  <h4 className="phase-item-title">{phase.title}</h4>
+                  <h4 className="phase-item-title">{phase.title || phase.name}</h4>
                   <p className="phase-item-desc">{phase.description}</p>
                   <span className="tag tag-ghost">{phase.type}</span>
                 </div>
@@ -110,7 +145,7 @@ export default function ScriptDetail() {
 
         {activeTab === 'clues' && (
           <div className="clue-grid">
-            {script.clues.map((clue) => (
+            {(script.clues || []).map((clue) => (
               <div key={clue.id} className="clue-card">
                 <div className="clue-card-header">
                   <span className="clue-card-name">{clue.name}</span>
@@ -119,11 +154,6 @@ export default function ScriptDetail() {
                   </span>
                 </div>
                 <p className="clue-card-desc">{clue.description}</p>
-                {!clue.isPublic && clue.ownerRole && (
-                  <span className="clue-card-owner">
-                    归属：{script.roles.find((r) => r.id === clue.ownerRole)?.name || '未知'}
-                  </span>
-                )}
               </div>
             ))}
           </div>

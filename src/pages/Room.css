@@ -228,3 +228,176 @@
     width: 100%;
   }
 }
+
+/* === 创建/加入房间界面 === */
+.room-create-section {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.room-create-hint {
+  color: var(--color-text-dim);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.room-create-actions {
+  margin-bottom: 20px;
+}
+
+.room-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--color-text-dim);
+  font-size: 13px;
+}
+
+.room-divider::before,
+.room-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.room-error {
+  color: var(--color-primary);
+  font-size: 14px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* === 通用按钮 === */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, #c0392b);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-success {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.btn-lg {
+  padding: 12px 28px;
+  font-size: 16px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* === 标签 === */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.tag-primary {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--color-primary);
+}
+
+.tag-success {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--color-success);
+}
+
+.tag-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-dim);
+}
+
+.tag-danger {
+  background: rgba(231, 76, 60, 0.2);
+  color: var(--color-primary);
+}
+
+/* === 房间头部右侧 === */
+.room-header-right {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* === 我的角色高亮 === */
+.room-my-role {
+  margin-bottom: 32px;
+}
+
+.role-card-highlight {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.15);
+}
+
+.room-my-secret {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(231, 76, 60, 0.08);
+  border-radius: var(--radius-sm, 6px);
+  border-left: 3px solid var(--color-primary);
+}
+
+.room-my-secret p {
+  font-size: 13px;
+  color: var(--color-text);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* === 空位 === */
+.player-item.empty {
+  border-style: dashed;
+  opacity: 0.5;
+}
+
+/* === 页面加载 === */
+.page-loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--color-text-dim);
+  font-size: 16px;
+}

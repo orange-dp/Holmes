@@ -505,3 +505,153 @@
     display: none;
   }
 }
+
+/* 房间信息栏 */
+.play-room-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.play-room-code {
+  font-size: 13px;
+  color: var(--color-text-dim);
+  letter-spacing: 1px;
+}
+
+/* 投票进度 */
+.play-vote-progress {
+  font-size: 13px;
+  color: var(--color-text-dim);
+  margin-bottom: 14px;
+}
+
+/* 投票结果 */
+.play-vote-result {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.play-vote-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.play-vote-result-item:last-child {
+  border-bottom: none;
+}
+
+/* 揭晓 - 我的角色高亮 */
+.play-reveal-role.me {
+  border-color: var(--color-primary);
+  background: rgba(231, 76, 60, 0.08);
+}
+
+.play-reveal-text {
+  font-size: 16px;
+  margin: 16px 0;
+  color: var(--color-text-dim);
+}
+
+.play-reveal-text strong {
+  color: var(--color-primary);
+}
+
+/* 底部导航提示 */
+.play-nav-hint {
+  font-size: 14px;
+  color: var(--color-text-dim);
+  margin: 0 auto;
+}
+
+/* 页面加载 */
+.page-loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--color-text-dim);
+  font-size: 16px;
+}
+
+/* 通用按钮（如果 Play.css 未引入 Room.css） */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-lg {
+  padding: 12px 28px;
+  font-size: 16px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.tag-primary {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--color-primary);
+}
+
+.tag-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-dim);
+}
+
+.tag-danger {
+  background: rgba(231, 76, 60, 0.2);
+  color: var(--color-primary);
+}
+
+.tag-success {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--color-success);
+}

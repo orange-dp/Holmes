@@ -1,31 +1,132 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getScriptById, PHASE_TYPES } from '../data/scripts';
+import { useAuth } from '../context/AuthContext.jsx';
+import { getScriptDetail, getMyRole } from '../api/scripts.js';
+import { getRoom, getRoomByCode, changePhase, endGame } from '../api/rooms.js';
+import {
+  connectSocket,
+  joinRoomSocket,
+  leaveRoomSocket,
+  onRoomState,
+  onPhaseChanged,
+  onVoteUpdate,
+  onVoteResult,
+  onGameEnded,
+  emitVote,
+  emitPhaseChange,
+  emitGameEnd,
+  emitClueRevealed,
+} from '../api/socket.js';
 import './Play.css';
 
 export default function Play() {
-  const { id } = useParams();
+  const { id } = useParams();  // scriptId
   const navigate = useNavigate();
-  const script = getScriptById(id);
+  const { user } = useAuth();
 
-  // 当前阶段索引
-  const [currentPhaseIdx, setCurrentPhaseIdx] = useState(0);
-  // 当前视角角色（模拟"我是谁"）
-  const [myRoleId, setMyRoleId] = useState(null);
-  // 已查看的线索
+  const [script, setScript] = useState(null);
+  const [room, setRoom] = useState(null);
+  const [myRole, setMyRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // 本地 UI 状态
   const [revealedClues, setRevealedClues] = useState([]);
-  // 投票选择
   const [voteTarget, setVoteTarget] = useState(null);
-  // 是否已揭示真相
+  const [voteInfo, setVoteInfo] = useState({ voted: 0, total: 0 });
+  const [voteResult, setVoteResult] = useState(null);
   const [revealed, setRevealed] = useState(false);
 
-  const phases = script?.phases || [];
-  const currentPhase = phases[currentPhaseIdx];
-  const myRole = script?.roles.find((r) => r.id === myRoleId);
-  const phaseClues = useMemo(
-    () => script?.clues.filter((c) => c.phaseId === currentPhase?.id) || [],
-    [script, currentPhase]
-  );
+  const roomIdRef = useRef(null);
+
+  // 初始加载：获取剧本详情
+  useEffect(() => {
+    getScriptDetail(id)
+      .then((data) => {
+        setScript(data.script);
+        // 获取我的角色
+        return getMyRole(id);
+      })
+      .then((data) => {
+        if (data.role) {
+          setMyRole(data.role);
+          // 如果有房间码，获取房间状态
+          if (data.roomCode) {
+            return getRoomByCode(data.roomCode);
+          }
+        }
+        return null;
+      })
+      .then((data) => {
+        if (data?.room) {
+          setRoom(data.room);
+          roomIdRef.current = data.room.id;
+
+          // 连接 Socket
+          connectSocket();
+          joinRoomSocket(data.room.id);
+        }
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // Socket.IO 监听
+  useEffect(() => {
+    if (!roomIdRef.current) return;
+
+    const cleanup1 = onRoomState((data) => {
+      if (data.room) setRoom(data.room);
+    });
+
+    const cleanup2 = onPhaseChanged((data) => {
+      // 阶段变更时重置揭示状态
+      setRevealed(false);
+      setVoteResult(null);
+    });
+
+    const cleanup3 = onVoteUpdate((data) => {
+      setVoteInfo(data);
+    });
+
+    const cleanup4 = onVoteResult((data) => {
+      setVoteResult(data);
+    });
+
+    const cleanup5 = onGameEnded(() => {
+      // 游戏结束
+    });
+
+    return () => {
+      cleanup1();
+      cleanup2();
+      cleanup3();
+      cleanup4();
+      cleanup5();
+    };
+  }, [room?.id]);
+
+  // 离开时清理 Socket
+  useEffect(() => {
+    return () => {
+      if (roomIdRef.current) {
+        leaveRoomSocket(roomIdRef.current);
+      }
+    };
+  }, []);
+
+  if (loading) {
+    return <div className="page-loading">加载中...</div>;
+  }
+
+  if (error && !script) {
+    return (
+      <div className="play-not-found">
+        <p>{error}</p>
+        <button className="btn btn-primary" onClick={() => navigate('/')}>返回大厅</button>
+      </div>
+    );
+  }
 
   if (!script) {
     return (
@@ -36,52 +137,64 @@ export default function Play() {
     );
   }
 
-  // 角色选择
-  if (!myRoleId) {
+  // 如果没有角色（未加入房间或未分配角色）
+  if (!myRole) {
     return (
-      <div className="play-page">
-        <button className="play-back" onClick={() => navigate(`/room/${script.id}`)}>
-          ← 返回房间
+      <div className="play-not-found">
+        <p>你尚未被分配角色，请先加入房间并等待房主分配角色</p>
+        <button className="btn btn-primary" onClick={() => navigate(`/script/${id}`)}>
+          前往剧本页
         </button>
-        <h1 className="play-title">选择你的角色</h1>
-        <p className="play-subtitle">请选择你在本局游戏中扮演的角色（仅模拟，实际应由房间分配）</p>
-        <div className="role-grid">
-          {script.roles.map((role) => (
-            <div
-              key={role.id}
-              className="role-card role-selectable"
-              onClick={() => setMyRoleId(role.id)}
-            >
-              <img className="role-avatar" src={role.avatar} alt={role.name} />
-              <div className="role-card-body">
-                <h3 className="role-name">{role.name}</h3>
-                <p className="role-desc">{role.intro}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
+
+  const phases = script.phases || [];
+  const currentPhaseIdx = room?.currentPhase ?? 0;
+  const currentPhase = phases[currentPhaseIdx];
+  const isHost = room?.hostId === user.id;
+  const roomStatus = room?.status;
+
+  // 获取当前阶段的线索
+  const phaseClues = useMemo(() => {
+    if (!script?.clues || !currentPhase) return [];
+    return script.clues.filter((c) => c.phaseId === currentPhase.id);
+  }, [script, currentPhase]);
 
   // 查看线索
   const handleRevealClue = (clueId) => {
     if (!revealedClues.includes(clueId)) {
       setRevealedClues([...revealedClues, clueId]);
+      // 通知其他玩家
+      if (roomIdRef.current) {
+        emitClueRevealed(roomIdRef.current, clueId);
+      }
     }
   };
 
   // 下一阶段
   const handleNextPhase = () => {
-    if (currentPhaseIdx < phases.length - 1) {
-      setCurrentPhaseIdx(currentPhaseIdx + 1);
-    }
+    if (!roomIdRef.current || !isHost) return;
+    changePhase(roomIdRef.current, 'next').then((data) => {
+      setRoom(data.room);
+      emitPhaseChange(roomIdRef.current, data.room.currentPhase);
+    }).catch((err) => setError(err.message));
   };
 
   // 上一阶段
   const handlePrevPhase = () => {
-    if (currentPhaseIdx > 0) {
-      setCurrentPhaseIdx(currentPhaseIdx - 1);
+    if (!roomIdRef.current || !isHost) return;
+    changePhase(roomIdRef.current, 'prev').then((data) => {
+      setRoom(data.room);
+      emitPhaseChange(roomIdRef.current, data.room.currentPhase);
+    }).catch((err) => setError(err.message));
+  };
+
+  // 投票
+  const handleVote = (roleId) => {
+    setVoteTarget(roleId);
+    if (roomIdRef.current) {
+      emitVote(roomIdRef.current, roleId);
     }
   };
 
@@ -90,10 +203,25 @@ export default function Play() {
     setRevealed(true);
   };
 
+  // 结束游戏
+  const handleEndGame = () => {
+    if (!roomIdRef.current || !isHost) return;
+    endGame(roomIdRef.current).then((data) => {
+      setRoom(data.room);
+      emitGameEnd(roomIdRef.current);
+    }).catch((err) => setError(err.message));
+  };
+
+  // 所有已查看的线索
+  const allRevealedClues = useMemo(() => {
+    if (!script?.clues) return [];
+    return script.clues.filter((c) => revealedClues.includes(c.id));
+  }, [script, revealedClues]);
+
   return (
     <div className="play-page">
-      <button className="play-back" onClick={() => navigate(`/room/${script.id}`)}>
-        ← 返回房间
+      <button className="play-back" onClick={() => navigate(`/script/${id}`)}>
+        ← 返回剧本
       </button>
 
       {/* 我的信息栏 */}
@@ -102,26 +230,27 @@ export default function Play() {
         <div className="play-my-role-info">
           <span className="play-my-role-label">你的角色</span>
           <span className="play-my-role-name">{myRole.name}</span>
+          {myRole.isKiller && <span className="tag tag-danger">你是凶手</span>}
         </div>
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={() => setMyRoleId(null)}
-        >
-          切换角色
-        </button>
+        {room && (
+          <div className="play-room-info">
+            <span className="play-room-code">房间号：{room.code}</span>
+            <span className="tag tag-ghost">{room.players.length}人</span>
+          </div>
+        )}
       </div>
 
       {/* 阶段进度条 */}
       <div className="play-progress">
         {phases.map((phase, idx) => (
           <div
-            key={phase.id}
+            key={idx}
             className={`play-progress-item ${
               idx < currentPhaseIdx ? 'done' : idx === currentPhaseIdx ? 'current' : ''
             }`}
           >
             <div className="play-progress-dot">{idx + 1}</div>
-            <span className="play-progress-label">{phase.name}</span>
+            <span className="play-progress-label">{phase.title || phase.name}</span>
           </div>
         ))}
       </div>
@@ -129,15 +258,14 @@ export default function Play() {
       {/* 当前阶段内容 */}
       <div className="play-phase-content">
         <div className="play-phase-header">
-          <span className="tag tag-primary">{currentPhase?.type}</span>
-          <h2 className="play-phase-title">{currentPhase?.name}</h2>
-          <p className="play-phase-desc">{currentPhase?.description}</p>
+          <span className="tag tag-primary">{currentPhase?.type || 'phase'}</span>
+          <h2 className="play-phase-title">{currentPhase?.title || currentPhase?.name}</h2>
+          <p className="play-phase-desc">{currentPhase?.description || currentPhase?.desc}</p>
         </div>
 
-        {/* 阶段内容区 */}
         <div className="play-phase-body">
           {/* 背景介绍 */}
-          {currentPhase?.type === PHASE_TYPES.INTRO && (
+          {currentPhase?.type === 'intro' && (
             <div className="play-story-card">
               <h3 className="play-story-title">背景故事</h3>
               <p className="play-story-text">{script.background}</p>
@@ -145,22 +273,22 @@ export default function Play() {
           )}
 
           {/* 自我介绍 */}
-          {currentPhase?.type === PHASE_TYPES.SELF_INTRO && (
+          {currentPhase?.type === 'self_intro' && (
             <div className="play-self-intro">
               <div className="play-story-card">
                 <h3 className="play-story-title">你的公开介绍</h3>
                 <p className="play-story-text">{myRole.intro}</p>
               </div>
               <div className="play-story-card play-secret-card">
-                <h3 className="play-story-title">🔍 你的秘密剧本</h3>
+                <h3 className="play-story-title">你的秘密剧本</h3>
                 <p className="play-story-text">{myRole.secret}</p>
                 {myRole.isKiller && (
                   <span className="tag tag-danger">你是凶手！</span>
                 )}
               </div>
               <div className="play-role-list">
-                <h4 className="play-subsection-title">其他角色介绍</h4>
-                {script.roles.filter((r) => r.id !== myRoleId).map((role) => (
+                <h4 className="play-subsection-title">其他角色</h4>
+                {script.roles.filter((r) => r.id !== myRole.id).map((role) => (
                   <div key={role.id} className="play-role-item">
                     <img className="role-avatar-sm" src={role.avatar} alt={role.name} />
                     <div>
@@ -174,7 +302,7 @@ export default function Play() {
           )}
 
           {/* 搜证 */}
-          {currentPhase?.type === PHASE_TYPES.INVESTIGATE && (
+          {currentPhase?.type === 'investigate' && (
             <div className="play-investigate">
               <h4 className="play-subsection-title">本阶段线索（点击查看）</h4>
               {phaseClues.length === 0 ? (
@@ -191,13 +319,12 @@ export default function Play() {
                       >
                         <div className="clue-card-header">
                           <span className="clue-card-name">
-                            {isRevealed ? clue.name : '🔒 未知线索'}
+                            {isRevealed ? clue.name : '未知线索'}
                           </span>
                         </div>
-                        {isRevealed && (
-                          <p className="clue-card-desc">{clue.description}</p>
-                        )}
-                        {!isRevealed && (
+                        {isRevealed ? (
+                          <p className="clue-card-desc">{clue.description || clue.desc}</p>
+                        ) : (
                           <p className="clue-card-desc clue-card-placeholder">点击翻看线索卡</p>
                         )}
                       </div>
@@ -205,16 +332,16 @@ export default function Play() {
                   })}
                 </div>
               )}
-              {revealedClues.length > 0 && (
+              {phaseClues.length > 0 && (
                 <p className="play-clue-tip">
-                  已查看 {revealedClues.length} / {phaseClues.length} 条线索
+                  已查看 {phaseClues.filter((c) => revealedClues.includes(c.id)).length} / {phaseClues.length} 条线索
                 </p>
               )}
             </div>
           )}
 
           {/* 讨论 */}
-          {currentPhase?.type === PHASE_TYPES.DISCUSS && (
+          {currentPhase?.type === 'discuss' && (
             <div className="play-discuss">
               <div className="play-story-card">
                 <h3 className="play-story-title">自由讨论</h3>
@@ -222,40 +349,41 @@ export default function Play() {
                   请所有玩家自由讨论已掌握的线索，分享你的推理与怀疑。不要暴露你的秘密剧本，除非你想误导他人。
                 </p>
               </div>
-              <div className="play-clue-review">
-                <h4 className="play-subsection-title">已掌握的线索</h4>
-                {revealedClues.length === 0 ? (
-                  <p className="play-empty">尚未发现任何线索</p>
-                ) : (
+              {allRevealedClues.length > 0 && (
+                <div className="play-clue-review">
+                  <h4 className="play-subsection-title">已掌握的线索</h4>
                   <div className="clue-grid">
-                    {script.clues
-                      .filter((c) => revealedClues.includes(c.id))
-                      .map((clue) => (
-                        <div key={clue.id} className="clue-card revealed">
-                          <div className="clue-card-header">
-                            <span className="clue-card-name">{clue.name}</span>
-                          </div>
-                          <p className="clue-card-desc">{clue.description}</p>
+                    {allRevealedClues.map((clue) => (
+                      <div key={clue.id} className="clue-card revealed">
+                        <div className="clue-card-header">
+                          <span className="clue-card-name">{clue.name}</span>
                         </div>
-                      ))}
+                        <p className="clue-card-desc">{clue.description || clue.desc}</p>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* 投票 */}
-          {currentPhase?.type === PHASE_TYPES.VOTE && (
+          {currentPhase?.type === 'vote' && (
             <div className="play-vote">
               <h4 className="play-subsection-title">你认为谁是凶手？</h4>
+              {voteInfo.total > 0 && (
+                <p className="play-vote-progress">
+                  已投票：{voteInfo.voted} / {voteInfo.total}
+                </p>
+              )}
               <div className="play-vote-grid">
                 {script.roles
-                  .filter((r) => r.id !== myRoleId)
+                  .filter((r) => r.id !== myRole.id)
                   .map((role) => (
                     <div
                       key={role.id}
                       className={`play-vote-card ${voteTarget === role.id ? 'selected' : ''}`}
-                      onClick={() => setVoteTarget(role.id)}
+                      onClick={() => handleVote(role.id)}
                     >
                       <img className="role-avatar" src={role.avatar} alt={role.name} />
                       <span className="play-vote-name">{role.name}</span>
@@ -270,11 +398,25 @@ export default function Play() {
                   你投给了 <strong>{script.roles.find((r) => r.id === voteTarget)?.name}</strong>
                 </p>
               )}
+              {voteResult && (
+                <div className="play-vote-result">
+                  <h4 className="play-subsection-title">投票结果</h4>
+                  {voteResult.votes.map((v, idx) => {
+                    const role = script.roles.find((r) => r.id === v.target_role_id);
+                    return (
+                      <div key={idx} className="play-vote-result-item">
+                        <span>{role?.name || '未知'}</span>
+                        <span className="tag tag-primary">{v.cnt} 票</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
           {/* 揭晓真相 */}
-          {currentPhase?.type === PHASE_TYPES.REVEAL && (
+          {currentPhase?.type === 'reveal' && (
             <div className="play-reveal">
               {!revealed ? (
                 <div className="play-reveal-prompt">
@@ -289,33 +431,27 @@ export default function Play() {
                   {script.roles.map((role) => (
                     <div
                       key={role.id}
-                      className={`play-reveal-role ${role.isKiller ? 'killer' : ''}`}
+                      className={`play-reveal-role ${role.id === myRole.id ? 'me' : ''}`}
                     >
                       <img className="role-avatar" src={role.avatar} alt={role.name} />
                       <div className="play-reveal-role-info">
                         <span className="play-reveal-role-name">{role.name}</span>
-                        {role.isKiller ? (
-                          <span className="tag tag-danger">凶手</span>
-                        ) : (
-                          <span className="tag tag-ghost">无辜</span>
-                        )}
+                        {role.id === myRole.id && <span className="tag tag-primary">我</span>}
                       </div>
                     </div>
                   ))}
-                  <div className="play-reveal-vote">
-                    {voteTarget && (
-                      <p>
-                        你投给了 <strong>{script.roles.find((r) => r.id === voteTarget)?.name}</strong>，
-                        {script.roles.find((r) => r.id === voteTarget)?.isKiller
-                          ? '猜对了！🎉'
-                          : '很遗憾，猜错了。'}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    className="btn btn-primary btn-lg"
-                    onClick={() => navigate('/')}
-                  >
+                  {myRole.isKiller && (
+                    <p className="play-reveal-text">你就是凶手！</p>
+                  )}
+                  {!myRole.isKiller && voteTarget && (
+                    <p className="play-reveal-text">
+                      你投给了 <strong>{script.roles.find((r) => r.id === voteTarget)?.name}</strong>
+                      {script.roles.find((r) => r.id === voteTarget)?.isKiller
+                        ? '，恭喜猜对了！'
+                        : '，很遗憾猜错了。'}
+                    </p>
+                  )}
+                  <button className="btn btn-primary btn-lg" onClick={() => navigate('/')}>
                     返回大厅
                   </button>
                 </div>
@@ -325,21 +461,29 @@ export default function Play() {
         </div>
       </div>
 
-      {/* 底部导航 */}
+      {/* 底部导航（仅房主可操作） */}
       <div className="play-nav">
-        <button
-          className="btn btn-outline"
-          onClick={handlePrevPhase}
-          disabled={currentPhaseIdx === 0}
-        >
-          ← 上一阶段
-        </button>
-        {currentPhaseIdx < phases.length - 1 ? (
-          <button className="btn btn-primary" onClick={handleNextPhase}>
-            下一阶段 →
-          </button>
+        {isHost ? (
+          <>
+            <button
+              className="btn btn-outline"
+              onClick={handlePrevPhase}
+              disabled={currentPhaseIdx === 0}
+            >
+              上一阶段
+            </button>
+            {currentPhaseIdx < phases.length - 1 ? (
+              <button className="btn btn-primary" onClick={handleNextPhase}>
+                下一阶段 →
+              </button>
+            ) : (
+              <button className="btn btn-primary" onClick={handleEndGame}>
+                结束游戏
+              </button>
+            )}
+          </>
         ) : (
-          <span className="play-nav-end">游戏即将结束</span>
+          <span className="play-nav-hint">等待房主推进阶段...</span>
         )}
       </div>
     </div>

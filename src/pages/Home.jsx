@@ -1,38 +1,56 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { MOCK_SCRIPTS } from '../data/scripts.js'
+import { getScripts } from '../api/scripts.js'
 import './Home.css'
 
 export default function Home() {
   const [search, setSearch] = useState('')
   const [filterTag, setFilterTag] = useState('all')
   const [filterPlayers, setFilterPlayers] = useState(0)
+  const [scripts, setScripts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  // 收集所有标签
+  // 从 API 获取剧本列表
+  useEffect(() => {
+    setLoading(true)
+    setError('')
+
+    const filters = {}
+    if (search) filters.search = search
+    if (filterTag !== 'all') filters.tag = filterTag
+    if (filterPlayers !== 0) filters.players = filterPlayers
+
+    // 防抖：搜索时延迟 300ms
+    const timer = setTimeout(() => {
+      getScripts(filters)
+        .then((data) => {
+          setScripts(data.scripts || [])
+        })
+        .catch((err) => {
+          setError(err.message || '获取剧本列表失败')
+          setScripts([])
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    }, search ? 300 : 0)
+
+    return () => clearTimeout(timer)
+  }, [search, filterTag, filterPlayers])
+
+  // 收集所有标签（从已加载的剧本中提取）
   const allTags = useMemo(() => {
     const tags = new Set()
-    MOCK_SCRIPTS.forEach((s) => s.tags.forEach((t) => tags.add(t)))
+    scripts.forEach((s) => (s.tags || []).forEach((t) => tags.add(t)))
     return ['all', ...Array.from(tags)]
-  }, [])
+  }, [scripts])
 
   // 玩家人数选项
   const playerOptions = useMemo(() => {
-    const counts = new Set(MOCK_SCRIPTS.map((s) => s.playerCount))
+    const counts = new Set(scripts.map((s) => s.playerCount))
     return [0, ...Array.from(counts).sort((a, b) => a - b)]
-  }, [])
-
-  const filteredScripts = useMemo(() => {
-    return MOCK_SCRIPTS.filter((s) => {
-      const matchSearch =
-        !search ||
-        s.title.includes(search) ||
-        s.synopsis.includes(search) ||
-        s.tags.some((t) => t.includes(search))
-      const matchTag = filterTag === 'all' || s.tags.includes(filterTag)
-      const matchPlayers = filterPlayers === 0 || s.playerCount === filterPlayers
-      return matchSearch && matchTag && matchPlayers
-    })
-  }, [search, filterTag, filterPlayers])
+  }, [scripts])
 
   return (
     <div className="home">
@@ -47,7 +65,7 @@ export default function Home() {
         <div className="home-search">
           <input
             type="text"
-            placeholder="搜索剧本名 / 标签 / 简介..."
+            placeholder="搜索剧本名 / 简介..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="home-search-input"
@@ -87,16 +105,16 @@ export default function Home() {
 
       {/* 剧本列表 */}
       <div className="home-section-title">
-        共 {filteredScripts.length} 个剧本
+        {loading ? '加载中...' : error ? error : `共 ${scripts.length} 个剧本`}
       </div>
-      {filteredScripts.length === 0 ? (
+      {!loading && !error && scripts.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">🔍</div>
           <p>没有找到符合条件的剧本</p>
         </div>
       ) : (
         <div className="script-grid">
-          {filteredScripts.map((script) => (
+          {scripts.map((script) => (
             <Link
               to={`/script/${script.id}`}
               key={script.id}
@@ -125,7 +143,7 @@ export default function Home() {
                 </div>
                 <p className="script-card-synopsis">{script.synopsis}</p>
                 <div className="script-card-tags">
-                  {script.tags.map((tag) => (
+                  {(script.tags || []).map((tag) => (
                     <span key={tag} className="tag">{tag}</span>
                   ))}
                 </div>

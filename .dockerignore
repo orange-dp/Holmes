@@ -4,3 +4,5 @@ dist/
 .joycode/
 *.md
 .DS_Store
+server/node_modules/
+.env

@@ -1,7 +1,42 @@
-version: "3.8"
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: holmes
+      POSTGRES_PASSWORD: holmes123
+      POSTGRES_DB: holmes
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U holmes"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: ./server
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: holmes
+      DB_PASSWORD: holmes123
+      DB_NAME: holmes
+      PORT: "3001"
+      CORS_ORIGIN: "*"
+      JWT_SECRET: holmes-prod-secret-change-me
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   web:
     build: .
     ports:
       - "8080:80"
+    depends_on:
+      - api
     restart: unless-stopped
+
+volumes:
+  pgdata:

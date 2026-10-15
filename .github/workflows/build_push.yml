@@ -16,8 +16,8 @@ jobs:
       - run: |
           docker build -t uhub.service.ucloud.cn/holmes/holmes-api:latest \
                        -t uhub.service.ucloud.cn/holmes/holmes-api:${{ github.sha }} ./server
-          docker push uhub.service.ucloud.cn/holmes/holmes-api:latest
           docker push uhub.service.ucloud.cn/holmes/holmes-api:${{ github.sha }}
+          docker push uhub.service.ucloud.cn/holmes/holmes-api:latest
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -31,5 +31,5 @@ jobs:
       - run: |
           docker build -t uhub.service.ucloud.cn/holmes/holmes-web:latest \
                        -t uhub.service.ucloud.cn/holmes/holmes-web:${{ github.sha }} .
-          docker push uhub.service.ucloud.cn/holmes/holmes-web:latest            
           docker push uhub.service.ucloud.cn/holmes/holmes-web:${{ github.sha }}
+          docker push uhub.service.ucloud.cn/holmes/holmes-web:latest

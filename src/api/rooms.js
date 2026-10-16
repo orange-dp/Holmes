@@ -28,6 +28,13 @@ export function getRoom(roomId) {
 }
 
 /**
+ * 查询当前用户正在进行的房间（刷新后恢复用）
+ */
+export function getMyActiveRoom() {
+  return get('/rooms/active/mine')
+}
+
+/**
  * 加入房间
  * @param {string} roomId - 房间 ID
  */

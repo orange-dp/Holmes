@@ -136,6 +136,27 @@ export default function Play() {
     };
   }, []);
 
+  // ---- 以下计算必须在提前 return 之前，确保 Hooks 调用顺序一致 ----
+  const phases = script?.phases || [];
+  const currentPhaseIdx = room?.currentPhase ?? 0;
+  const currentPhase = phases[currentPhaseIdx];
+  const isHost = room?.hostId === user?.id;
+  const roomStatus = room?.status;
+
+  // 获取当前阶段的线索
+  const phaseClues = useMemo(() => {
+    if (!script?.clues || !currentPhase) return [];
+    return script.clues.filter((c) => c.phaseId === currentPhase.id);
+  }, [script, currentPhase]);
+
+  // 所有已查看的线索
+  const allRevealedClues = useMemo(() => {
+    if (!script?.clues) return [];
+    return script.clues.filter((c) => revealedClues.includes(c.id));
+  }, [script, revealedClues]);
+
+  // ---- 提前返回 ----
+
   if (loading) {
     return <div className="page-loading">加载中...</div>;
   }
@@ -169,18 +190,6 @@ export default function Play() {
       </div>
     );
   }
-
-  const phases = script.phases || [];
-  const currentPhaseIdx = room?.currentPhase ?? 0;
-  const currentPhase = phases[currentPhaseIdx];
-  const isHost = room?.hostId === user.id;
-  const roomStatus = room?.status;
-
-  // 获取当前阶段的线索
-  const phaseClues = useMemo(() => {
-    if (!script?.clues || !currentPhase) return [];
-    return script.clues.filter((c) => c.phaseId === currentPhase.id);
-  }, [script, currentPhase]);
 
   // 查看线索
   const handleRevealClue = (clueId) => {
@@ -236,12 +245,6 @@ export default function Play() {
       emitGameEnd(roomIdRef.current);
     }).catch((err) => setError(err.message));
   };
-
-  // 所有已查看的线索
-  const allRevealedClues = useMemo(() => {
-    if (!script?.clues) return [];
-    return script.clues.filter((c) => revealedClues.includes(c.id));
-  }, [script, revealedClues]);
 
   return (
     <div className="play-page">

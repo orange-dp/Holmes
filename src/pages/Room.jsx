@@ -5,6 +5,7 @@ import {
   createRoom,
   getRoomByCode,
   joinRoom,
+  getMyActiveRoom,
   toggleReady,
   assignRoles,
   startGame,
@@ -35,15 +36,39 @@ export default function Room() {
   const [actionLoading, setActionLoading] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [disconnectNotice, setDisconnectNotice] = useState('');
+  const [activeRoom, setActiveRoom] = useState(null);
   const roomIdRef = useRef(null);
 
-  // 初始加载：获取剧本详情
+  // 初始加载：获取剧本详情 + 检查是否有活跃房间（提示用户恢复）
   useEffect(() => {
-    getScriptDetail(id)
-      .then((data) => setScript(data.script))
+    let cancelled = false;
+    Promise.all([
+      getScriptDetail(id).catch((err) => { throw err; }),
+      getMyActiveRoom().catch(() => ({ room: null })),
+    ])
+      .then(([scriptData, activeData]) => {
+        if (cancelled) return;
+        setScript(scriptData.script);
+        // 如果有活跃房间且是当前剧本的房间，显示恢复提示（不自动恢复）
+        if (activeData.room && activeData.room.scriptId === id) {
+          setActiveRoom(activeData.room);
+        }
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    return () => { cancelled = true; };
   }, [id]);
+
+  // 恢复到已有房间
+  const handleResumeRoom = () => {
+    if (!activeRoom) return;
+    setRoom(activeRoom);
+    roomIdRef.current = activeRoom.id;
+    connectSocket();
+    joinRoomSocket(activeRoom.id);
+    refreshMyRole(id);
+    setActiveRoom(null);
+  };
 
   // 创建或加入房间
   const handleCreateRoom = async () => {
@@ -73,7 +98,7 @@ export default function Room() {
     setActionLoading(true);
     setError('');
     try {
-      // 先通过码找到房间
+      // 先通过码找到房间（提交时统一转大写）
       const data = await getRoomByCode(joinCode.trim().toUpperCase());
       const roomId = data.room.id;
 
@@ -231,6 +256,26 @@ export default function Room() {
           <h1 className="room-title">{script.title}</h1>
           <p className="room-create-hint">创建新房间或输入房间码加入已有房间</p>
 
+          {/* 恢复已有房间的提示 */}
+          {activeRoom && (
+            <div className="room-resume-card">
+              <div className="room-resume-info">
+                <span className="room-resume-icon">🎮</span>
+                <div>
+                  <div className="room-resume-title">
+                    {activeRoom.status === 'playing' ? '你的游戏进行中' : '你的房间等待中'}
+                  </div>
+                  <div className="room-resume-desc">
+                    房间号：{activeRoom.code} · {activeRoom.players?.length || 0}/{activeRoom.playerCount} 人
+                  </div>
+                </div>
+              </div>
+              <button className="btn btn-primary" onClick={handleResumeRoom}>
+                回到房间 →
+              </button>
+            </div>
+          )}
+
           <div className="room-create-actions">
             <button
               className="btn btn-primary btn-lg"
@@ -252,7 +297,10 @@ export default function Room() {
               placeholder="输入 6 位房间码"
               value={joinCode}
               maxLength={6}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              autoComplete="off"
+              onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleJoinByCode()}
             />
             <button

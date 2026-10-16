@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { getScripts } from '../api/scripts.js'
+import { getMyActiveRoom } from '../api/rooms.js'
 import './Home.css'
 
 export default function Home() {
@@ -10,6 +11,18 @@ export default function Home() {
   const [scripts, setScripts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeRoom, setActiveRoom] = useState(null)
+
+  // 检查是否有活跃房间（用户可能刷新或导航离开后需要回到房间）
+  useEffect(() => {
+    getMyActiveRoom()
+      .then((data) => {
+        if (data.room) {
+          setActiveRoom(data.room)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // 从 API 获取剧本列表
   useEffect(() => {
@@ -59,6 +72,29 @@ export default function Home() {
         <h1 className="home-banner-title">谋杀之谜</h1>
         <p className="home-banner-subtitle">沉浸式剧本杀 · 多人在线 · 角色扮演推理</p>
       </div>
+
+      {/* 活跃房间入口 */}
+      {activeRoom && (
+        <div className="home-active-room">
+          <div className="home-active-room-info">
+            <span className="home-active-room-icon">🎮</span>
+            <div>
+              <div className="home-active-room-title">
+                {activeRoom.status === 'playing' ? '游戏进行中' : '房间等待中'}
+              </div>
+              <div className="home-active-room-desc">
+                房间号：{activeRoom.code} · {activeRoom.players?.length || 0}/{activeRoom.playerCount} 人
+              </div>
+            </div>
+          </div>
+          <Link
+            to={`/room/${activeRoom.scriptId}`}
+            className="btn btn-primary"
+          >
+            回到房间 →
+          </Link>
+        </div>
+      )}
 
       {/* 筛选区 */}
       <div className="home-filters">

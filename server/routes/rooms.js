@@ -121,6 +121,23 @@ router.get('/code/:code', authRequired, async (req, res) => {
   res.json({ room: roomState })
 })
 
+// 查询当前用户正在进行的房间（用于刷新后恢复）
+router.get('/active/mine', authRequired, async (req, res) => {
+  const room = await queryOne(
+    `SELECT r.id FROM rooms r
+     JOIN room_players rp ON rp.room_id = r.id
+     WHERE rp.user_id = $1 AND r.status IN ('waiting', 'playing')
+     ORDER BY r.updated_at DESC
+     LIMIT 1`,
+    [req.user.id]
+  )
+  if (!room) {
+    return res.json({ room: null })
+  }
+  const roomState = await buildRoomState(room.id)
+  res.json({ room: roomState })
+})
+
 // 获取房间详情
 router.get('/:id', authRequired, async (req, res) => {
   const roomState = await buildRoomState(req.params.id)
@@ -142,13 +159,14 @@ router.post('/:id/join', authRequired, async (req, res) => {
     return res.status(400).json({ error: '游戏已开始，无法加入' })
   }
 
-  // 检查是否已加入
+  // 检查是否已加入 —— 已在房间则直接返回房间状态（支持刷新后重新进入）
   const existing = await queryOne(
     'SELECT id FROM room_players WHERE room_id = $1 AND user_id = $2',
     [roomId, req.user.id]
   )
   if (existing) {
-    return res.status(400).json({ error: '你已在房间中' })
+    const roomState = await buildRoomState(roomId)
+    return res.json({ room: roomState })
   }
 
   // 检查人数

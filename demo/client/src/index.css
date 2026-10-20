@@ -1,0 +1,563 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* 登录页 */
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 20px;
+}
+
+.login-screen h1 {
+  font-size: 28px;
+  color: #e94560;
+}
+
+.login-screen h2 {
+  font-size: 16px;
+  color: #888;
+  font-weight: normal;
+}
+
+.character-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 600px;
+  justify-content: center;
+}
+
+.character-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #16213e;
+  transition: all 0.2s;
+}
+
+.character-card:hover {
+  border-color: #e94560;
+  transform: translateY(-2px);
+}
+
+.character-card.taken {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.character-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* 游戏舞台（背景区，后期接视频） */
+.game-stage {
+  flex: 1;
+  position: relative;
+  background: #0f0f23;
+  overflow: hidden;
+}
+
+/* 背景（视频/图片层） */
+.stage-bg {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+}
+
+/* 占位内容 */
+.stage-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.stage-room-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stage-room-type {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.stage-room-name {
+  font-size: 28px;
+  font-weight: bold;
+  color: #4a4a6a;
+}
+
+.stage-hint {
+  font-size: 12px;
+  color: #333;
+  border: 1px dashed #333;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+/* === 辅助信息悬浮面板（地图+时钟，缩放式） === */
+/* 外层容器：尺寸由 JS inline style 控制（BASE_W*scale × BASE_H*scale） */
+.assist-panel {
+  position: absolute;
+  z-index: 20;
+  overflow: hidden;
+  border-radius: 12px;
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+/* 缩略态：半透明背景，能看见内部缩小的地图+时钟 */
+.assist-panel.collapsed {
+  background: rgba(15, 15, 35, 0.55);
+  backdrop-filter: blur(3px);
+  border: 1px solid rgba(58, 58, 90, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+/* 展开态：不透明背景，清晰可交互 */
+.assist-panel.expanded {
+  background: rgba(15, 15, 35, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid #3a3a5a;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* 缩放容器：固定尺寸，通过 transform: scale() 缩放 */
+.assist-scaler {
+  position: relative;
+  transform-origin: top left;
+}
+
+/* 拖拽手柄 */
+.assist-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 28px;
+  height: 20px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px 12px 0 0;
+  z-index: 31;
+  touch-action: none;
+}
+
+.assist-drag-handle:active {
+  cursor: grabbing;
+}
+
+.assist-drag-dots {
+  font-size: 10px;
+  color: #444;
+  letter-spacing: -2px;
+  user-select: none;
+}
+
+/* 展开/缩小按钮 */
+.assist-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 30;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #3a3a5a;
+  background: rgba(15, 15, 35, 0.9);
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.assist-toggle:hover {
+  border-color: #e94560;
+  color: #e0e0e0;
+}
+
+/* 内容区：时钟（上）+ 地图（下） */
+.assist-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  padding-top: 24px; /* 给拖拽手柄留空间 */
+}
+
+.assist-clock-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 6px;
+}
+
+.assist-map-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+/* 缩略态点击覆盖层（透明，捕获点击展开） */
+.assist-click-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 25;
+  cursor: pointer;
+}
+
+/* 方格户型图 */
+.map-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-wrapper svg {
+  flex: 1;
+}
+
+/* 楼层切换 */
+.floor-switcher {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  background: rgba(15, 15, 35, 0.9);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.floor-btn {
+  padding: 6px 14px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #1a1a3e;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  transition: all 0.15s;
+}
+
+.floor-btn:hover {
+  border-color: #e94560;
+  color: #e0e0e0;
+}
+
+.floor-btn.active {
+  background: #e94560;
+  color: white;
+  border-color: #e94560;
+}
+
+/* 房间矩形交互 */
+.map-room {
+  transition: all 0.2s;
+}
+
+.map-room.clickable rect {
+  filter: drop-shadow(0 0 4px rgba(233, 69, 96, 0.3));
+}
+
+.map-room.clickable:hover rect {
+  filter: drop-shadow(0 0 8px rgba(233, 69, 96, 0.6));
+}
+
+.map-room.selected rect {
+  filter: drop-shadow(0 0 8px rgba(255, 152, 0, 0.6));
+}
+
+.map-room.clickable:active rect {
+  filter: drop-shadow(0 0 10px rgba(233, 69, 96, 0.8));
+}
+
+
+
+/* 侧边栏 */
+.sidebar {
+  width: 360px;
+  background: #16213e;
+  border-left: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.sidebar-section h3 {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 玩家信息 */
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-info .name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.murderer-badge {
+  background: #e94560;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* 按钮 */
+.btn {
+  padding: 8px 16px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #1a1a3e;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.btn:hover {
+  border-color: #e94560;
+  background: #2a2a4e;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-move {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+/* 物体列表 */
+.object-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  background: #1a1a3e;
+  margin-bottom: 6px;
+}
+
+.object-item.searched {
+  opacity: 0.5;
+}
+
+/* 道具栏 */
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: #1a1a3e;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.item-type {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.item-type.key { background: #4caf50; color: white; }
+.item-type.evidence { background: #ff9800; color: white; }
+.item-type.info { background: #2196f3; color: white; }
+
+/* 任务 */
+.task-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #1a1a3e;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.task-item.completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* 事件日志 */
+.event-log {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.event-entry {
+  padding: 4px 8px;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+/* 相遇通知 */
+.meeting-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e94560;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  z-index: 100;
+  animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+  from { transform: translateX(-50%) translateY(-100%); }
+  to { transform: translateX(-50%) translateY(0); }
+}
+
+/* 同位置玩家 */
+.same-location {
+  font-size: 13px;
+  color: #4caf50;
+  margin-top: 6px;
+}
+
+/* 秘密区 */
+.secret-box {
+  background: #2a1a1a;
+  border: 1px solid #e94560;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 搜索弹窗 */
+.search-result {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #16213e;
+  border: 2px solid #e94560;
+  border-radius: 12px;
+  padding: 24px;
+  z-index: 200;
+  max-width: 400px;
+}
+
+.search-result h3 {
+  color: #e94560;
+  margin-bottom: 12px;
+}
+
+/* === 移动端响应式 === */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .game-stage {
+    flex: 1;
+    min-height: 45vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 55vh;
+    border-left: none;
+    border-top: 1px solid #333;
+  }
+
+  .floor-switcher {
+    top: 8px;
+    right: 8px;
+    padding: 2px;
+  }
+
+  .floor-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  .stage-room-name {
+    font-size: 22px;
+  }
+
+  .login-screen h1 {
+    font-size: 22px;
+  }
+
+  .character-card {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .sidebar-section {
+    padding: 10px 12px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
